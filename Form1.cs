@@ -22,6 +22,7 @@ namespace Muusika_Kuulamis_Programm
             CreateAudioPlayer();
             CreateTimer();
             SubscribeToEvents();
+            CheckSongStatus();
         }
 
         private void CreateTimer()
@@ -48,6 +49,7 @@ namespace Muusika_Kuulamis_Programm
         {
             timer.Stop();
             outputDevice?.Stop();
+            CheckSongStatus();
         }
         #endregion
 
@@ -65,6 +67,7 @@ namespace Muusika_Kuulamis_Programm
         private void OutputDevice_PlaybackStopped(object? sender, StoppedEventArgs e)
         {
             DisposeOldSong();
+            CheckSongStatus();
         }
 
         private void btn_add_songs_to_list_Click(object sender, EventArgs e)
@@ -77,7 +80,7 @@ namespace Muusika_Kuulamis_Programm
                 CheckFileExists = true,
                 CheckPathExists = true,
                 RestoreDirectory = true,
-                Filter = "mp3 files (*.mp3)|*.mp3|All files (*.*)|*.*",
+                Filter = "Muusika|*.mp3|*.wav|*.*",
                 DefaultExt = "mp3",
                 InitialDirectory = @"C:\Music"
             };
@@ -117,6 +120,7 @@ namespace Muusika_Kuulamis_Programm
             outputDevice?.Stop();
             DisplayAvailableSongs();
             ClearGuessData();
+            CheckSongStatus();
         }
 
         private void btn_submit_guess_Click(object sender, EventArgs e)
@@ -146,7 +150,6 @@ namespace Muusika_Kuulamis_Programm
             label_guess_result.Text = $"{points} / 2";
 
             // Display the correct song name at top
-
             label_song_cleanname.Text = playingSong.CleanName;
         }
 
@@ -198,7 +201,9 @@ namespace Muusika_Kuulamis_Programm
             LoadNewSong(songPath);
 
             // Get random start time
-            TimeSpan listeningPeriod = TimeSpan.FromSeconds(int.Parse(tb_song_max_length.Text));
+            int song_max_length = int.Parse(tb_song_max_length.Text);
+            if (song_max_length >= 400) song_max_length = 0;
+            TimeSpan listeningPeriod = TimeSpan.FromSeconds(song_max_length);
 
             TimeSpan skipTime = CalculateSongStartTime(listeningPeriod, audioFile.TotalTime, cb_ignore_song_max_length.Checked);
 
@@ -243,6 +248,8 @@ namespace Muusika_Kuulamis_Programm
 
             // Play song & reset resule/play song status 
             PlayChosenSong();
+
+            CheckSongStatus();
         }
 
 
@@ -263,20 +270,47 @@ namespace Muusika_Kuulamis_Programm
 
         private void btn_play_or_pause_current_song_Click(object sender, EventArgs e)
         {
+            CheckActionSongStatus();
+        }
+
+        private void CheckSongStatus()
+        {
             if (outputDevice == null) return;
             switch (outputDevice.PlaybackState)
-            { 
+            {
+                case PlaybackState.Playing:
+                    btn_play_or_pause_current_song.Text = "Peata";
+                    break;
+
+                case PlaybackState.Paused:
+                    btn_play_or_pause_current_song.Text = "Jätka";
+                    break;
+
+                case PlaybackState.Stopped:
+                    btn_play_or_pause_current_song.Text = " ";
+                    break;
+            }
+        }
+
+        private void CheckActionSongStatus()
+        {
+            if (outputDevice == null) return;
+            switch (outputDevice.PlaybackState)
+            {
                 case PlaybackState.Playing:
                     outputDevice.Pause();
                     btn_play_or_pause_current_song.Text = "Jätka";
-                        break;
+                    break;
 
                 case PlaybackState.Paused:
                     outputDevice.Play();
                     btn_play_or_pause_current_song.Text = "Peata";
-                        break;
-            }
+                    break;
 
+                case PlaybackState.Stopped:
+                    btn_play_or_pause_current_song.Text = " ";
+                    break;
+            }
         }
     }
 
